@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星选投票 — 公开评选投票平台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --red:#E63E3E;--orange:#FF7A45;--gold:#FFC53D;--pink:#FF85C0;
+  --red-deep:#C4262E;--bg:#FFF7F0;--card:#fff;
+  --text:#2B2024;--text-sec:#8C7A80;--border:#FFE3D0;
+  --grad:linear-gradient(135deg,#E63E3E,#FF7A45);--grad-gold:linear-gradient(135deg,#FF9A3D,#FFC53D);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.app{max-width:1100px;margin:0 auto;padding:16px}
+
+/* ===== 顶部导航 ===== */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 4px;margin-bottom:12px}
+.logo{display:flex;align-items:center;gap:8px;font-size:22px;font-weight:800}
+.logo-icon{width:38px;height:38px;border-radius:10px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;box-shadow:0 3px 10px rgba(230,62,62,.35)}
+.btn-admin{background:#fff;border:1.5px solid var(--border);color:var(--text-sec);padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;transition:.2s}
+.btn-admin:hover{border-color:var(--orange);color:var(--orange)}
+
+/* ===== 通用 ===== */
+.page{display:none;animation:fadeIn .35s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.btn{border:none;cursor:pointer;border-radius:24px;font-weight:700;transition:.2s;font-family:inherit}
+.btn-main{background:var(--grad);color:#fff;padding:12px 32px;font-size:16px;box-shadow:0 4px 14px rgba(230,62,62,.35)}
+.btn-main:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(230,62,62,.45)}
+.btn-main:disabled{background:#ccc;box-shadow:none;cursor:not-allowed;transform:none}
+.btn-mini{background:var(--grad);color:#fff;padding:8px 20px;font-size:14px}
+.btn-mini:disabled{background:#ccc;box-shadow:none;cursor:not-allowed}
+.btn-ghost{background:#fff;border:1.5px solid var(--border);color:var(--text-sec);padding:8px 18px;font-size:14px}
+.btn-ghost:hover{border-color:var(--orange);color:var(--orange)}
+.btn-danger{background:#fff;border:1.5px solid #ffd6d6;color:var(--red);padding:6px 14px;font-size:13px;border-radius:16px}
+.empty{text-align:center;padding:60px 20px;color:var(--text-sec)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+
+/* ===== 活动列表页 ===== */
+.hero{background:var(--grad);border-radius:20px;padding:34px 26px;color:#fff;margin-bottom:20px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.15)}
+.hero::before{content:"";position:absolute;right:30px;bottom:-50px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.1)}
+.hero h1{font-size:26px;margin-bottom:8px;position:relative;z-index:1}
+.hero p{font-size:14px;opacity:.9;position:relative;z-index:1}
+.section-title{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:800;margin:24px 0 14px}
+.section-title::before{content:"";width:4px;height:18px;border-radius:2px;background:var(--grad)}
+.act-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.act-card{background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(230,62,62,.08);cursor:pointer;transition:.25s;border:1.5px solid transparent}
+.act-card:hover{transform:translateY(-4px);border-color:var(--orange);box-shadow:0 8px 20px rgba(230,62,62,.15)}
+.act-cover{height:140px;background:var(--grad-gold);display:flex;align-items:center;justify-content:center;font-size:44px;position:relative}
+.act-cover img{width:100%;height:100%;object-fit:cover}
+.act-status{position:absolute;top:10px;right:10px;padding:4px 12px;border-radius:14px;font-size:12px;font-weight:700;color:#fff}
+.st-active{background:#52C41A}.st-pending{background:#FAAD14}.st-ended{background:#999}
+.act-body{padding:16px}
+.act-body h3{font-size:17px;margin-bottom:6px}
+.act-body p{font-size:13px;color:var(--text-sec);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px}
+.act-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--text-sec);border-top:1px dashed var(--border);padding-top:10px}
+.act-type-tag{color:var(--orange);font-weight:700}
+
+/* ===== 投票页 ===== */
+.vote-header{background:var(--card);border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 2px 10px rgba(230,62,62,.06)}
+.vote-header h2{font-size:22px;margin-bottom:8px}
+.vote-header .desc{font-size:14px;color:var(--text-sec);line-height:1.7;margin-bottom:14px}
+.vote-info{display:flex;flex-wrap:wrap;gap:10px}
+.info-chip{background:#FFF1E8;color:var(--orange);font-size:13px;padding:6px 14px;border-radius:16px;font-weight:600}
+.countdown-chip{background:#FFF1E8;color:var(--red);font-size:13px;padding:6px 14px;border-radius:16px;font-weight:700}
+.cand-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.cand-card{background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(230,62,62,.07);transition:.25s;border:2px solid transparent;position:relative}
+.cand-card:hover{transform:translateY(-3px)}
+.cand-card.selected{border-color:var(--red);box-shadow:0 6px 18px rgba(230,62,62,.2)}
+.cand-rank{position:absolute;top:10px;left:10px;z-index:2;width:32px;height:32px;border-radius:50%;background:#999;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+.rank-1{background:linear-gradient(135deg,#FF9A3D,#FFC53D);box-shadow:0 2px 8px rgba(255,165,60,.5)}
+.rank-2{background:linear-gradient(135deg,#9AA5B1,#C4CDD6)}
+.rank-3{background:linear-gradient(135deg,#C77B4A,#E0A67A)}
+.cand-img{height:150px;background:linear-gradient(135deg,#FFE3D0,#FFF1E8);display:flex;align-items:center;justify-content:center;font-size:44px;cursor:pointer}
+.cand-img img{width:100%;height:100%;object-fit:cover;cursor:pointer}
+.cand-body{padding:14px}
+.cand-body h4{font-size:16px;margin-bottom:6px}
+.cand-body p{font-size:12.5px;color:var(--text-sec);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px}
+.cand-video{display:inline-block;font-size:12px;color:var(--red);margin-bottom:10px;text-decoration:none;border:1px solid #ffd6d6;padding:3px 10px;border-radius:12px}
+.cand-stats{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-sec);margin-bottom:10px}
+.cand-stats b{color:var(--red);font-size:16px}
+.vote-bar{height:8px;background:#FFF1E8;border-radius:4px;overflow:hidden;margin-bottom:12px}
+.vote-bar-fill{height:100%;background:var(--grad);border-radius:4px;transition:width .6s ease}
+.cand-actions{display:flex;gap:8px;justify-content:center}
+.star-row{display:flex;gap:4px;justify-content:center;margin-bottom:10px;cursor:pointer}
+.star{font-size:26px;color:#E8D8CD;transition:.15s;user-select:none}
+.star.on{color:var(--gold)}
+.voted-tag{text-align:center;background:#F6FFED;color:#52C41A;font-size:13px;font-weight:700;padding:8px;border-radius:10px}
+.vote-footer{position:sticky;bottom:0;background:rgba(255,247,240,.95);backdrop-filter:blur(8px);padding:12px 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:center;gap:12px;z-index:5}
+.notice-banner{background:#FFFBE6;border:1px solid #FFE58F;color:#8C6E1B;border-radius:12px;padding:12px 16px;font-size:14px;margin-bottom:14px;text-align:center}
+.notice-end{background:#FFF1F0;border-color:#FFA39E;color:#CF1322}
+
+/* ===== 弹窗 ===== */
+.modal-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-mask.show{display:flex}
+.modal{background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:86vh;overflow-y:auto;animation:popIn .25s ease}
+@keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.modal-img{width:100%;max-height:280px;object-fit:cover;border-radius:16px 16px 0 0;background:linear-gradient(135deg,#FFE3D0,#FFF1E8);display:flex;align-items:center;justify-content:center;font-size:60px}
+.modal-body{padding:20px}
+.modal-body h3{font-size:19px;margin-bottom:10px}
+.modal-body p{font-size:14px;color:var(--text-sec);line-height:1.8;margin-bottom:12px}
+.modal-close{width:28px;text-align:center;font-size:20px;color:#999;cursor:pointer}
+.modal-head{display:flex;justify-content:space-between;align-items:center}
+
+/* ===== 管理页 ===== */
+.admin-login{max-width:400px;margin:60px auto;background:var(--card);border-radius:20px;padding:34px 28px;box-shadow:0 4px 18px rgba(230,62,62,.1);text-align:center}
+.admin-login h2{margin-bottom:6px}
+.admin-login .sub{font-size:13px;color:var(--text-sec);margin-bottom:22px}
+.admin-login input{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;margin-bottom:16px;font-family:inherit;outline:none}
+.admin-login input:focus{border-color:var(--orange)}
+.admin-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.form-card{background:var(--card);border-radius:16px;padding:24px;box-shadow:0 2px 10px rgba(230,62,62,.06);margin-bottom:16px}
+.form-card h3{font-size:17px;margin-bottom:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:13px;font-weight:700;color:var(--text-sec);margin-bottom:6px}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;outline:none;background:#fff}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--orange)}
+.form-group textarea{resize:vertical;min-height:70px}
+.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
+.cand-edit-item{display:flex;gap:10px;align-items:flex-start;background:#FFF9F5;border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;flex-wrap:wrap}
+.cand-edit-item .fields{flex:1;min-width:200px}
+.cand-edit-item input,.cand-edit-item textarea{width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;margin-bottom:6px;font-family:inherit;outline:none}
+.link-row{display:flex;gap:8px;align-items:center;background:#FFF9F5;border:1px dashed var(--border);border-radius:10px;padding:10px 14px;margin-top:12px;flex-wrap:wrap}
+.link-row code{background:#fff;padding:6px 12px;border-radius:8px;font-size:13px;color:var(--red);word-break:break-all;flex:1}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:rgba(43,32,36,.92);color:#fff;padding:12px 26px;border-radius:12px;font-size:14px;z-index:999;transition:.3s;opacity:0}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+@media(max-width:600px){
+  .form-row{grid-template-columns:1fr}
+  .hero{padding:26px 20px}
+  .hero h1{font-size:21px}
+  .app{padding:12px}
+  .vote-footer{padding:10px 0}
+  .btn-main{width:100%;padding:14px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 顶部导航 -->
+  <div class="topbar">
+    <div class="logo"><div class="logo-icon">🗳️</div>星选投票</div>
+    <button class="btn-admin" id="navAdminBtn" onclick="goAdmin()">管理入口</button>
+  </div>
+
+  <!-- ===== 活动列表页 ===== -->
+  <div class="page active" id="page-list">
+    <div class="hero">
+      <h1>🎉 让每一票都被看见</h1>
+      <p>公开透明的作品评选投票平台 · 免注册 · 实时票数</p>
+    </div>
+    <div class="section-title">进行中的活动</div>
+    <div id="activeList" class="act-grid"></div>
+    <div class="section-title">已结束的活动</div>
+    <div id="endedList" class="act-grid"></div>
+  </div>
+
+  <!-- ===== 投票页 ===== -->
+  <div class="page" id="page-vote"></div>
+
+  <!-- ===== 管理登录页 ===== -->
+  <div class="page" id="page-admin-login">
+    <div class="admin-login">
+      <h2>🔐 管理员登录</h2>
+      <p class="sub">请输入管理密码进入后台</p>
+      <input type="password" id="adminPwd" placeholder="管理密码" onkeydown="if(event.key==='Enter')doAdminLogin()">
+      <button class="btn btn-main" style="width:100%" onclick="doAdminLogin()">进入后台</button>
+    </div>
+  </div>
+
+  <!-- ===== 管理后台页 ===== -->
+  <div class="page" id="page-admin"></div>
+
+</div>
+
+<!-- 详情弹窗 -->
+<div class="modal-mask" id="detailModal" onclick="if(event.target===this)closeDetail()">
+  <div class="modal">
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+ * 数据层（演示模式：localStorage 模拟云数据库）
+ * 真实部署时：将 DB 对象替换为 Firebase/LeanCloud/Supabase 实现
+ * （保留 loadActivities/saveActivity/vote 等接口签名即可无缝切换）
+ * ================================================================ */
+var DB = {
+  KEY:'xingxuan_db_v1',
+  read:function(){
+    try{ return JSON.parse(localStorage.getItem(this.KEY)) || null; }catch(e){ return null; }
+  },
+  write:function(db){ localStorage.setItem(this.KEY, JSON.stringify(db)); },
+  ensure:function(){
+    var db = this.read();
+    if(!db){ db = {activities:[], seq:1}; this.seed(db); this.write(db); }
+    return db;
+  },
+  /* 演示数据：一个进行中的摄影评选（含多媒体候选） */
+  seed:function(db){
+    var now = Date.now();
+    db.activities.push({
+      id:'a1', title:'2026 春季手机摄影大赛', description:'用镜头记录春天！作品征集已结束，现在进入大众投票环节。每人可投 1 票，选出你心中最美的春日光影。',
+      cover:'', type:'single', maxChoices:3,
+      startTime: now - 86400000*2, endTime: now + 86400000*5, status:'active', createdAt:now,
+      candidates:[
+        {id:'c1',activityId:'a1',image:'',title:'《城市之春》',description:'清晨五点的南京鸡鸣寺路，樱花与晨光交织，古刹飞檐在花海中若隐若现。',videoUrl:'',votes:12,totalScore:0,scoreCount:0,order:1},
+        {id:'c2',activityId:'a1',image:'',title:'《雨后新绿》',description:'一场春雨过后，小区楼下的爬山虎挂着水珠，逆光下透出鲜嫩的新绿。',videoUrl:'https://www.bilibili.com',votes:8,totalScore:0,scoreCount:0,order:2},
+        {id:'c3',activityId:'a1',image:'',title:'《花田少年》',description:'油菜花田里追逐风筝的孩子，是春天最有生命力的画面。',videoUrl:'',votes:15,totalScore:0,scoreCount:0,order:3},
+        {id:'c4',activityId:'a1',image:'',title:'《夜樱》',description:'路灯下的夜樱别有韵味，粉白花瓣在暖光里像一场无声的雪。',videoUrl:'',votes:5,totalScore:0,scoreCount:0,order:4}
+      ]
+    });
+    db.activities.push({
+      id:'a2', title:'公司年会节目海选', description:'年会节目最终名单由你决定！最多可为 3 个节目投票，快来支持你喜欢的节目吧！',
+      cover:'', type:'multi', maxChoices:3,
+      startTime: now - 86400000, endTime: now + 86400000*3, status:'active', createdAt:now,
+      candidates:[
+        {id:'c5',activityId:'a2',image:'',title:'开场舞《热力全开》',description:'市场部燃爆全场的热舞开场，排练了一个月，就等这一刻！',videoUrl:'',votes:20,totalScore:0,scoreCount:0,order:1},
+        {id:'c6',activityId:'a2',image:'',title:'小品《甲方乙方》',description:'技术部倾情演绎程序员的日常，笑点密集，接地气！',videoUrl:'',votes:16,totalScore:0,scoreCount:0,order:2},
+        {id:'c7',activityId:'a2',image:'',title:'合唱《明天会更好》',description:'综合部门的暖心合唱，祝公司明年更好。',videoUrl:'',votes:9,totalScore:0,scoreCount:0,order:3}
+      ]
+    });
+    db.activities.push({
+      id:'a3', title:'Q1 最受欢迎食堂菜品评分', description:'给本季度食堂菜品打分（1-5星），你的评分将决定下季度的菜单去留！',
+      cover:'', type:'score', maxChoices:0,
+      startTime: now - 86400000*10, endTime: now - 86400000*2, status:'active', createdAt:now-86400000*10,
+      candidates:[
+        {id:'c8',activityId:'a3',image:'',title:'红烧狮子头',description:'经典本帮菜，肥瘦相间，入口即化。',videoUrl:'',votes:0,totalScore:220,scoreCount:50,order:1},
+        {id:'c9',activityId:'a3',image:'',title:'麻辣香锅',description:'自选食材，麻辣鲜香，人气之选。',videoUrl:'',votes:0,totalScore:180,scoreCount:42,order:2}
+      ]
+    });
+  },
+  loadActivities:function(){ return this.ensure().activities; },
+  loadActivity:function(id){
+    var list = this.ensure().activities;
+    for(var i=0;i<list.length;i++){ if(list[i].id===id) return list[i]; }
+    return null;
+  },
+  saveActivity:function(act){
+    var db = this.ensure();
+    var found = false;
+    for(var i=0;i<db.activities.length;i++){
+      if(db.activities[i].id===act.id){ db.activities[i]=act; found=true; break; }
+    }
+    if(!found) db.activities.push(act);
+    this.write(db);
+  },
+  deleteActivity:function(id){
+    var db = this.ensure();
+    db.activities = db.activities.filter(function(a){return a.id!==id;});
+    this.write(db);
+  },
+  newId:function(){ return 'id' + Date.now().toString(36) + Math.random().toString(36).substr(2,6); },
+  vote:function(activityId, candidateId, score){
+    var act = this.loadActivity(activityId);
+    if(!act) return;
+    for(var i=0;i<act.candidates.length;i++){
+      if(act.candidates[i].id===candidateId){
+        if(typeof score === 'number'){ act.candidates[i].totalScore += score; act.candidates[i].scoreCount += 1; }
+        else { act.candidates[i].votes += 1; }
+        break;
+      }
+    }
+    this.saveActivity(act);
+  },
+  changePassword:function(oldPwd,newPwd){
+    var db = this.ensure();
+    if(db.adminPwd && db.adminPwd !== oldPwd) return false;
+    db.adminPwd = newPwd; this.write(db); return true;
+  },
+  checkPassword:function(pwd){
+    var db = this.ensure();
+    return (db.adminPwd || 'admin123') === pwd;
+  },
+  getAdminPwdExists:function(){ return !!(this.ensure().adminPwd); }
+};
+
+/* ==================== 工具函数 ==================== */
+function fmtTime(ts){
+  var d = new Date(ts);
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function pad(n){ return n<10 ? '0'+n : ''+n; }
+function actStatus(act){
+  if(act.status==='ended') return 'ended';
+  var now = Date.now();
+  if(now < act.startTime) return 'pending';
+  if(now > act.endTime) return 'ended';
+  return 'active';
+}
+var STATUS_TEXT = {active:'进行中',pending:'未开始',ended:'已结束'};
+var TYPE_TEXT = {single:'单选投票',multi:'多选投票',score:'评分排名'};
+function toast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function(){ t.classList.remove('show'); },2200);
+}
+function hasVoted(actId){ return localStorage.getItem('voted_'+actId) === '1'; }
+function markVoted(actId){ localStorage.setItem('voted_'+actId,'1'); }
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+/* ==================== 路由 ==================== */
+function showPage(id){
+  var pages = document.querySelectorAll('.page');
+  for(var i=0;i<pages.length;i++) pages[i].classList.remove('active');
+  document.getElementById(id).classList.add('active');
+}
+function goHome(){ renderList(); showPage('page-list'); window.scrollTo(0,0); }
+function goAdmin(){
+  if(sessionStorage.getItem('admin_ok')==='1'){ renderAdmin(); showPage('page-admin'); }
+  else showPage('page-admin-login');
+}
+
+/* ==================== 活动列表页 ==================== */
+function renderList(){
+  var acts = DB.loadActivities();
+  var activeHtml = '', endedHtml = '';
+  var actives = [], ended = [];
+  acts.forEach(function(a){
+    var st = actStatus(a);
+    (st==='active' ? actives : (st==='pending' ? actives : ended)).push(a);
+  });
+  function card(a){
+    var st = actStatus(a);
+    var icon = a.cover ? '<img src="'+esc(a.cover)+'" alt="">' : '🏆';
+    return '<div class="act-card" onclick="openVote(\''+a.id+'\')">'+
+      '<div class="act-cover">'+icon+'<span class="act-status st-'+st+'">'+STATUS_TEXT[st]+'</span></div>'+
+      '<div class="act-body"><h3>'+esc(a.title)+'</h3><p>'+esc(a.description||'')+'</p>'+
+      '<div class="act-meta"><span class="act-type-tag">'+TYPE_TEXT[a.type]+'</span><span>截止 '+fmtTime(a.endTime)+'</span></div>'+
+      '</div></div>';
+  }
+  actives.forEach(function(a){ activeHtml += card(a); });
+  ended.forEach(function(a){ endedHtml += card(a); });
+  document.getElementById('activeList').innerHTML = activeHtml || '<div class="empty"><div class="empty-icon">🎈</div>暂无进行中的活动</div>';
+  document.getElementById('endedList').innerHTML = endedHtml || '<div class="empty" style="padding:24px"><div class="empty-icon">🍂</div>暂无已结束的活动</div>';
+}
+
+/* ==================== 投票页 ==================== */
+var currentAct = null;
+var multiSelect = {};   // 多选已勾选
+var scoreSelect = {};   // 评分已打星
+
+function openVote(id){
+  var act = DB.loadActivity(id);
+  if(!act){ toast('活动不存在'); return; }
+  currentAct = act;
+  multiSelect = {}; scoreSelect = {};
+  renderVote();
+  showPage('page-vote');
+  window.scrollTo(0,0);
+}
+
+function renderVote(){
+  var act = currentAct;
+  var st = actStatus(act);
+  var voted = hasVoted(act.id);
+  var now = Date.now();
+
+  // 排名计算
+  var sorted = act.candidates.slice().sort(function(a,b){
+    if(act.type==='score') return (b.totalScore/(b.scoreCount||1)) - (a.totalScore/(a.scoreCount||1));
+    return b.votes - a.votes;
+  });
+  var rankMap = {};
+  sorted.forEach(function(c,i){ rankMap[c.id] = i+1; });
+
+  var infoChips = '<span class="info-chip">🗳 '+TYPE_TEXT[act.type]+'</span>';
+  if(act.type==='multi') infoChips += '<span class="info-chip">最多可选 '+act.maxChoices+' 项</span>';
+  if(st==='pending'){
+    var waitSec = Math.floor((act.startTime-now)/1000);
+    infoChips += '<span class="countdown-chip">⏳ 距开始 '+fmtCountdown(waitSec)+'</span>';
+  } else if(st==='active'){
+    var leftSec = Math.floor((act.endTime-now)/1000);
+    infoChips += '<span class="countdown-chip">⏰ 距结束 '+fmtCountdown(leftSec)+'</span>';
+  } else {
+    infoChips += '<span class="countdown-chip">🏁 投票已结束</span>';
+  }
+
+  // 总票数
+  var totalVotes = 0;
+  act.candidates.forEach(function(c){ totalVotes += (act.type==='score' ? c.scoreCount : c.votes); });
+  infoChips += '<span class="info-chip">已有 '+totalVotes+' 人参与</span>';
+
+  // 公告横幅
+  var banner = '';
+  if(voted) banner = '<div class="notice-banner">✅ 您已参与过本次投票，以下为实时结果</div>';
+  else if(st==='pending') banner = '<div class="notice-banner">⏳ 活动尚未开始，欢迎先浏览作品</div>';
+  else if(st==='ended') banner = '<div class="notice-banner notice-end">🏁 投票已结束，感谢参与！</div>';
+
+  // 候选卡片
+  var cards = '';
+  act.candidates.forEach(function(c){
+    var rank = rankMap[c.id];
+    var rankCls = rank===1?'rank-1':(rank===2?'rank-2':(rank===3?'rank-3':''));
+    var stat = act.type==='score'
+      ? '<b>' + (c.scoreCount ? (c.totalScore/c.scoreCount).toFixed(1) : '-') + '</b> 平均分 · '+c.scoreCount+' 人评分'
+      : '<b>'+c.votes+'</b> 票';
+    var pct = act.type==='score'
+      ? (c.scoreCount ? Math.round(c.totalScore/c.scoreCount/5*100) : 0)
+      : (totalVotes ? Math.round(c.votes/totalVotes*100) : 0);
+    var img = c.image ? '<img src="'+esc(c.image)+'" alt="" onclick="openDetail(\''+c.id+'\')">' : '<div onclick="openDetail(\''+c.id+'\')">'+candIcon(c.title)+'</div>';
+    var video = c.videoUrl ? '<a class="cand-video" href="'+esc(c.videoUrl)+'" target="_blank" rel="noopener">▶ 观看视频</a><br>' : '';
+
+    var actionHtml = '';
+    if(voted || st!=='active'){
+      actionHtml = '<div class="voted-tag">'+(st==='pending'?'等待开始':(st==='ended'?'已结束':'已投票'))+'</div>';
+    } else if(act.type==='single'){
+      actionHtml = '<div class="cand-actions"><button class="btn btn-mini" onclick="doSingleVote(\''+c.id+'\')">🗳 投他一票</button></div>';
+    } else if(act.type==='multi'){
+      actionHtml = '<div class="cand-actions"><button class="btn btn-ghost" onclick="toggleMulti(\''+c.id+'\',this)">☑ 选择</button></div>';
+    } else {
+      var stars = '';
+      for(var s=1;s<=5;s++) stars += '<span class="star" data-star="'+s+'" onclick="setScore(\''+c.id+'\','+s+',this.parentNode)">★</span>';
+      actionHtml = '<div class="star-row">'+stars+'</div>';
+    }
+
+    cards += '<div class="cand-card'+(multiSelect[c.id]?' selected':'')+'" id="card-'+c.id+'">'+
+      '<div class="cand-rank '+rankCls+'">'+rank+'</div>'+
+      '<div class="cand-img">'+img+'</div>'+
+      '<div class="cand-body"><h4 onclick="openDetail(\''+c.id+'\')" style="cursor:pointer">'+esc(c.title)+'</h4>'+
+      '<p>'+esc(c.description||'')+'</p>'+video+
+      '<div class="cand-stats"><span>当前排名 No.'+rank+'</span><span>'+stat+'</span></div>'+
+      '<div class="vote-bar"><div class="vote-bar-fill" style="width:'+pct+'%"></div></div>'+
+      actionHtml + '</div></div>';
+  });
+
+  // 底部提交栏（多选/评分）
+  var footer = '';
+  if(!voted && st==='active'){
+    if(act.type==='multi'){
+      footer = '<div class="vote-footer"><button class="btn btn-main" id="submitBtn" onclick="submitMulti()" disabled>提交投票（已选 0/'+act.maxChoices+'）</button></div>';
+    } else if(act.type==='score'){
+      footer = '<div class="vote-footer"><button class="btn btn-main" id="submitBtn" onclick="submitScore()" disabled>提交评分</button></div>';
+    }
+  }
+
+  document.getElementById('page-vote').innerHTML =
+    '<div style="margin-bottom:12px"><button class="btn btn-ghost" onclick="goHome()">← 返回活动列表</button></div>'+
+    '<div class="vote-header"><h2>🎉 '+esc(act.title)+'</h2>'+
+    '<div class="desc">'+esc(act.description||'')+'</div>'+
+    '<div class="vote-info">'+infoChips+'</div></div>'+
+    banner + '<div class="cand-grid">'+cards+'</div>' + footer;
+}
+
+function candIcon(title){
+  var icons = ['🎨','📸','🎬','🎵','💃','🎤','🏆','🌟','🍜','🌸'];
+  var h = 0; for(var i=0;i< String(title).length;i++) h = (h*31 + String(title).charCodeAt(i)) % 997;
+  return icons[h % icons.length];
+}
+function fmtCountdown(sec){
+  if(sec<0) sec = 0;
+  var d = Math.floor(sec/86400), h = Math.floor(sec%86400/3600), m = Math.floor(sec%3600/60), s = sec%60;
+  if(d>0) return d+'天'+h+'小时';
+  if(h>0) return h+'小时'+m+'分';
+  return m+'分'+s+'秒';
+}
+
+/* ---- 单选投票 ---- */
+function doSingleVote(cid){
+  if(hasVoted(currentAct.id)){ toast('您已投过票啦'); return; }
+  DB.vote(currentAct.id, cid);
+  markVoted(currentAct.id);
+  currentAct = DB.loadActivity(currentAct.id);
+  toast('投票成功，感谢参与！🎉');
+  renderVote();
+}
+
+/* ---- 多选投票 ---- */
+function toggleMulti(cid, btn){
+  var max = currentAct.maxChoices;
+  if(multiSelect[cid]){
+    delete multiSelect[cid]; btn.textContent = '☑ 选择'; btn.classList.remove('btn-mini'); btn.classList.add('btn-ghost');
+  } else {
+    var count = Object.keys(multiSelect).length;
+    if(count >= max){ toast('最多只能选择 '+max+' 项'); return; }
+    multiSelect[cid] = true; btn.textContent = '✔ 已选'; btn.classList.remove('btn-ghost'); btn.classList.add('btn-mini');
+  }
+  document.getElementById('card-'+cid).classList.toggle('selected', !!multiSelect[cid]);
+  var n = Object.keys(multiSelect).length;
+  var sub = document.getElementById('submitBtn');
+  if(sub){ sub.disabled = (n===0); sub.textContent = '提交投票（已选 '+n+'/'+max+'）'; }
+}
+function submitMulti(){
+  var ids = Object.keys(multiSelect);
+  if(ids.length===0){ toast('请先选择候选作品'); return; }
+  ids.forEach(function(cid){ DB.vote(currentAct.id, cid); });
+  markVoted(currentAct.id);
+  currentAct = DB.loadActivity(currentAct.id);
+  toast('投票成功，感谢参与！🎉');
+  renderVote();
+}
+
+/* ---- 评分投票 ---- */
+function setScore(cid, star, starRow){
+  scoreSelect[cid] = star;
+  var stars = starRow.querySelectorAll('.star');
+  for(var i=0;i<stars.length;i++) stars[i].classList.toggle('on', i < star);
+  var sub = document.getElementById('submitBtn');
+  if(sub){ sub.disabled = (Object.keys(scoreSelect).length===0); sub.textContent = '提交评分（已评 '+Object.keys(scoreSelect).length+' 项）'; }
+}
+function submitScore(){
+  var ids = Object.keys(scoreSelect);
+  if(ids.length===0){ toast('请先打分'); return; }
+  ids.forEach(function(cid){ DB.vote(currentAct.id, cid, scoreSelect[cid]); });
+  markVoted(currentAct.id);
+  currentAct = DB.loadActivity(currentAct.id);
+  toast('评分提交成功！🎉');
+  renderVote();
+}
+
+/* ---- 详情弹窗 ---- */
+function openDetail(cid){
+  var c = null;
+  currentAct.candidates.forEach(function(x){ if(x.id===cid) c = x; });
+  if(!c) return;
+  var img = c.image ? '<img class="modal-img" src="'+esc(c.image)+'" alt="">' : '<div class="modal-img">'+candIcon(c.title)+'</div>';
+  var video = c.videoUrl ? '<a class="btn btn-mini" style="text-decoration:none;display:inline-block" href="'+esc(c.videoUrl)+'" target="_blank" rel="noopener">▶ 观看视频</a>' : '';
+  document.getElementById('detailContent').innerHTML =
+    '<div class="modal-head"><span style="flex:1"></span><div class="modal-close" onclick="closeDetail()">✕</div></div>'+
+    img + '<div class="modal-body"><h3>'+esc(c.title)+'</h3><p>'+esc(c.description||'暂无简介')+'</p>'+video+'</div>';
+  document.getElementById('detailModal').classList.add('show');
+}
+function closeDetail(){ document.getElementById('detailModal').classList.remove('show'); }
+
+/* ==================== 管理后台 ==================== */
+function doAdminLogin(){
+  var pwd = document.getElementById('adminPwd').value;
+  if(DB.checkPassword(pwd)){
+    sessionStorage.setItem('admin_ok','1');
+    document.getElementById('adminPwd').value = '';
+    renderAdmin(); showPage('page-admin');
+    toast('欢迎回来，管理员');
+  } else {
+    toast('密码错误，请重试');
+  }
+}
+
+var editAct = null; // 当前编辑中的活动
+
+function renderAdmin(){
+  var acts = DB.loadActivities();
+  var listHtml = '';
+  acts.forEach(function(a){
+    var st = actStatus(a);
+    listHtml += '<div class="cand-edit-item"><div class="fields">'+
+      '<div style="font-weight:700;margin-bottom:4px">'+esc(a.title)+' <span class="act-type-tag" style="font-size:12px">['+TYPE_TEXT[a.type]+' · '+STATUS_TEXT[st]+']</span></div>'+
+      '<div style="font-size:12px;color:var(--text-sec)">候选 '+a.candidates.length+' 个 · 截止 '+fmtTime(a.endTime)+'</div></div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
+      '<button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="openVote(\''+a.id+'\')">预览</button>'+
+      '<button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="editActivity(\''+a.id+'\')">编辑</button>'+
+      '<button class="btn btn-danger" onclick="toggleEnd(\''+a.id+'\')">'+(a.status==='ended'?'重新开启':'提前结束')+'</button>'+
+      '<button class="btn btn-danger" onclick="delActivity(\''+a.id+'\')">删除</button>'+
+      '</div></div>';
+  });
+
+  document.getElementById('page-admin').innerHTML =
+    '<div class="admin-topbar"><h2 style="font-size:20px">🛠 管理后台</h2>'+
+    '<div style="display:flex;gap:8px"><button class="btn btn-main" style="padding:10px 22px;font-size:14px" onclick="newActivity()">＋ 创建新活动</button>'+
+    '<button class="btn btn-ghost" onclick="goHome()">返回前台</button>'+
+    '<button class="btn btn-ghost" onclick="adminLogout()">退出登录</button></div></div>'+
+    '<div class="form-card"><h3>📋 全部活动（'+acts.length+'）</h3>'+ (listHtml || '<div class="empty" style="padding:30px">还没有活动，点击右上角创建</div>') +'</div>'+
+    '<div class="form-card"><h3>🔑 修改管理密码</h3>'+
+    '<div class="form-row">'+
+    '<div class="form-group"><label>旧密码</label><input type="password" id="oldPwd" placeholder="'+(DB.getAdminPwdExists()?'输入旧密码':'初始密码 admin123')+'"></div>'+
+    '<div class="form-group"><label>新密码</label><input type="password" id="newPwd" placeholder="输入新密码"></div></div>'+
+    '<div class="form-actions"><button class="btn btn-ghost" onclick="changePwd()">确认修改</button></div></div>';
+}
+function adminLogout(){ sessionStorage.removeItem('admin_ok'); goHome(); }
+function changePwd(){
+  var o = document.getElementById('oldPwd').value, n = document.getElementById('newPwd').value;
+  if(!n){ toast('新密码不能为空'); return; }
+  if(DB.changePassword(o,n)){ toast('密码修改成功'); renderAdmin(); }
+  else toast('旧密码错误');
+}
+
+/* ---- 活动编辑器 ---- */
+function newActivity(){
+  editAct = {
+    id: DB.newId(), title:'', description:'', cover:'', type:'single', maxChoices:3,
+    startTime: Date.now(), endTime: Date.now()+86400000*7, status:'active',
+    createdAt: Date.now(), candidates:[]
+  };
+  renderEditor();
+}
+function editActivity(id){
+  editAct = JSON.parse(JSON.stringify(DB.loadActivity(id)));
+  if(editAct.status==='ended') editAct.status='active'; // 编辑时默认恢复进行中语义，保存时以时间判断
+  renderEditor();
+}
+function renderEditor(){
+  var candRows = '';
+  editAct.candidates.forEach(function(c,idx){
+    candRows += '<div class="cand-edit-item"><div class="fields">'+
+      '<input placeholder="标题（必填）" value="'+esc(c.title)+'" oninput="editAct.candidates['+idx+'].title=this.value">'+
+      '<input placeholder="封面图 URL（选填）" value="'+esc(c.image)+'" oninput="editAct.candidates['+idx+'].image=this.value">'+
+      '<input placeholder="视频链接（选填，如哔哩哔哩）" value="'+esc(c.videoUrl)+'" oninput="editAct.candidates['+idx+'].videoUrl=this.value">'+
+      '<textarea placeholder="简介（选填）" oninput="editAct.candidates['+idx+'].description=this.value">'+esc(c.description)+'</textarea>'+
+      '</div><div style="display:flex;flex-direction:column;gap:6px">'+
+      '<button class="btn btn-ghost" style="padding:4px 10px;font-size:12px" onclick="moveCand('+idx+',-1)">↑</button>'+
+      '<button class="btn btn-ghost" style="padding:4px 10px;font-size:12px" onclick="moveCand('+idx+',1)">↓</button>'+
+      '<button class="btn btn-danger" onclick="delCand('+idx+')">删除</button></div></div>';
+  });
+
+  var dtLocal = function(ts){
+    var d = new Date(ts - new Date(ts).getTimezoneOffset()*60000);
+    return d.toISOString().slice(0,16);
+  };
+
+  document.getElementById('page-admin').innerHTML =
+    '<div class="admin-topbar"><h2 style="font-size:20px">'+(DB.loadActivity(editAct.id)?'✏️ 编辑活动':'🆕 创建活动')+'</h2>'+
+    '<div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="renderAdmin()">取消</button>'+
+    '<button class="btn btn-main" style="padding:10px 22px;font-size:14px" onclick="saveActivity()">💾 保存活动</button></div></div>'+
+
+    '<div class="form-card"><h3>基本信息</h3>'+
+    '<div class="form-group"><label>活动标题</label><input placeholder="如：2026 春季手机摄影大赛" value="'+esc(editAct.title)+'" oninput="editAct.title=this.value"></div>'+
+    '<div class="form-group"><label>活动描述</label><textarea placeholder="评选规则、活动说明…" oninput="editAct.description=this.value">'+esc(editAct.description)+'</textarea></div>'+
+    '<div class="form-group"><label>活动封面图 URL（选填）</label><input placeholder="https://…" value="'+esc(editAct.cover)+'" oninput="editAct.cover=this.value"></div>'+
+    '<div class="form-row">'+
+    '<div class="form-group"><label>投票类型</label><select onchange="editAct.type=this.value;renderEditor()">'+
+      '<option value="single"'+(editAct.type==='single'?' selected':'')+'>单选投票（每人 1 票）</option>'+
+      '<option value="multi"'+(editAct.type==='multi'?' selected':'')+'>多选投票（每人最多 N 票）</option>'+
+      '<option value="score"'+(editAct.type==='score'?' selected':'')+'>评分排名（1-5 星）</option></select></div>'+
+    (editAct.type==='multi' ? '<div class="form-group"><label>最多可选数</label><input type="number" min="1" value="'+editAct.maxChoices+'" oninput="editAct.maxChoices=parseInt(this.value)||1"></div>' : '')+
+    '</div>'+
+    '<div class="form-row">'+
+    '<div class="form-group"><label>开始时间</label><input type="datetime-local" value="'+dtLocal(editAct.startTime)+'" onchange="editAct.startTime=new Date(this.value).getTime()"></div>'+
+    '<div class="form-group"><label>结束时间</label><input type="datetime-local" value="'+dtLocal(editAct.endTime)+'" onchange="editAct.endTime=new Date(this.value).getTime()"></div>'+
+    '</div></div>'+
+
+    '<div class="form-card"><h3>候选作品（'+editAct.candidates.length+'）</h3>'+ (candRows || '<div class="empty" style="padding:24px;font-size:13px">还没有候选作品</div>') +
+    '<div class="form-actions" style="justify-content:flex-start"><button class="btn btn-ghost" onclick="addCand()">＋ 添加候选作品</button></div>'+
+    '<div class="link-row">💡 提示：图片可通过任意图床获取 URL 后粘贴填入</div></div>';
+}
+function addCand(){
+  editAct.candidates.push({id:DB.newId(),activityId:editAct.id,image:'',title:'',description:'',videoUrl:'',votes:0,totalScore:0,scoreCount:0,order:editAct.candidates.length+1});
+  renderEditor();
+}
+function delCand(idx){
+  var c = editAct.candidates[idx];
+  var votes = editAct.type==='score' ? c.scoreCount : c.votes;
+  if(confirm('确认删除候选「'+(c.title||'未命名')+'」？其 '+votes+' 条投票记录将一并失效。')){ 
+    editAct.candidates.splice(idx,1); renderEditor();
+  }
+}
+function moveCand(idx,dir){
+  var t = idx+dir;
+  if(t<0||t>=editAct.candidates.length) return;
+  var arr = editAct.candidates;
+  var tmp = arr[idx]; arr[idx]=arr[t]; arr[t]=tmp;
+  renderEditor();
+}
+function saveActivity(){
+  if(!editAct.title.trim()){ toast('请填写活动标题'); return; }
+  var hasTitle = editAct.candidates.some(function(c){return c.title.trim();});
+  if(!hasTitle){ toast('请至少添加一个有标题的候选作品'); return; }
+  DB.saveActivity(editAct);
+  toast('活动已保存 ✓');
+  renderAdmin();
+}
+function toggleEnd(id){
+  var act = DB.loadActivity(id);
+  if(act.status==='ended'){ act.status='active'; toast('活动已重新开启'); }
+  else {
+    if(!confirm('确认提前结束活动「'+act.title+'」？结束后参与者将无法投票。')) return;
+    act.status='ended'; toast('活动已结束');
+  }
+  DB.saveActivity(act);
+  renderAdmin();
+}
+function delActivity(id){
+  var act = DB.loadActivity(id);
+  if(!confirm('确认删除活动「'+act.title+'」及其全部数据？此操作不可恢复。')) return;
+  DB.deleteActivity(id);
+  toast('活动已删除');
+  renderAdmin();
+}
+
+/* ==================== 初始化 ==================== */
+goHome();
+// 倒计时每秒刷新（仅投票页）
+setInterval(function(){
+  if(document.getElementById('page-vote').classList.contains('active') && currentAct){
+    var chips = document.querySelectorAll('#page-vote .countdown-chip');
+    var now = Date.now(), st = actStatus(currentAct);
+    if(chips.length){
+      if(st==='pending') chips[0].textContent = '⏳ 距开始 '+fmtCountdown(Math.floor((currentAct.startTime-now)/1000));
+      else if(st==='active') chips[0].textContent = '⏰ 距结束 '+fmtCountdown(Math.floor((currentAct.endTime-now)/1000));
+    }
+  }
+},1000);
+</script>
+</body>
+</html>
